@@ -10,10 +10,11 @@ class TaskNotFoundError(TaskErrorManager):
         super().__init__(f"Error. Tarea con ID '{task_id}' no encontrada.")
     
 class Task:
-    def __init__(self, id, description, completed=False):
+    def __init__(self, id, description, completed=False, due_date = None):
         self.id = id
         self.description = description
         self.completed = False
+        self.due_date = due_date
     
     def is_completed(self):
         return self.completed
@@ -29,9 +30,9 @@ class TaskManager:
     def __init__(self, repository):
         self.repository = repository
 
-    def add_task(self, description):
+    def add_task(self, description, due_date = None):
         #Llamamos al repositorio
-        return self.repository.add_task(description)
+        return self.repository.add_task(description, due_date)
         
     def delete_task(self, task_id):
         self.assert_is_valid_task_id(task_id)
@@ -48,7 +49,6 @@ class TaskManager:
         self.assert_is_valid_task_id(task_id)
         self.repository.complete_task(task_id)
 
-
     def contains_task(self, task_id):
         return self.repository.contains_task(task_id)
         
@@ -59,6 +59,8 @@ class TaskManager:
     def tasks_count(self):
         return self.repository.tasks_count()
     
+    def get_overdue_tasks(self):
+        return self.repository.get_overdue_tasks()
     #Assert methods
     def assert_is_valid_task_id(self, task_id):
         if not self.repository.contains_task(task_id):

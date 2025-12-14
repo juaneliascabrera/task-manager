@@ -2,11 +2,14 @@ import unittest
 import os
 from src.task_manager import TaskManager, TaskNotFoundError, Task
 from src.task_repository import TaskRepository
+from src.clock_implementations import MockClock
+from datetime import datetime, timedelta
 class TestTaskManager(unittest.TestCase):
     DB_TEST_NAME = 'test_tasks.db'
     def setUp(self):
         #Creamos el repository
-        self.repository = TaskRepository(self.DB_TEST_NAME)
+        self.mock_clock = MockClock(datetime(2025, 12, 14, 17, 00, 00))
+        self.repository = TaskRepository(self.DB_TEST_NAME, self.mock_clock)
         #Creamos el task manager
         self.manager = TaskManager(self.repository)
         #Tareas genéricas
@@ -109,6 +112,36 @@ class TestTaskManager(unittest.TestCase):
         #Intentamos conseguirla
         with self.assertRaises(TaskNotFoundError):
             self.manager.get_task_by_id(non_existent_id)
+
+    def test_can_create_task_with_due_date(self):
+        #Creamos la fecha
+        due_date = datetime(2025, 12, 31, 23, 59, 59)
+        #Creamos la tarea
+        created_task_id = self.manager.add_task(self.generic_task_description_one, due_date)
+        #Recuperamos la tarea
+        task = self.manager.get_task_by_id(created_task_id)
+        #Asertamos
+        self.assertEqual(task.due_date, due_date, "Deberían tener la misma fecha")
+    
+    def test_can_list_overdue_tasks(self):
+        #Creamos una tarea que venza en hoy+3dias
+        due_date_onetwo = self.mock_clock.now() + timedelta(days=3)
+        due_date_three = self.mock_clock.now() + timedelta(days=10)
+        created_task_id_one = self.manager.add_task(self.generic_task_description_one, due_date_onetwo)
+        created_task_id_two = self.manager.add_task(self.generic_task_description_two, due_date_onetwo)
+        created_task_id_three = self.manager.add_task(self.generic_task_description_three, due_date_three)
+        #Avanzamos 4 días 
+        self.mock_clock.advance_time(days=4)
+        #Tendríamos que obtener las dos tareas vencidas
+        overdue_tasks = self.manager.get_overdue_tasks()
+        #Asertamos
+        expected_ids = {created_task_id_one, created_task_id_two}
+        actual_ids = {task.get_id() for task in overdue_tasks}
+        self.assertEqual(len(overdue_tasks), 2, "Deberíamos tener 2 tareas vencidas")
+        self.assertEqual(expected_ids, actual_ids)
+        self.assertFalse(overdue_tasks[0].is_completed())
+        self.assertFalse(overdue_tasks[1].is_completed())
+
 
 if __name__ == '__main__':
     unittest.main()
