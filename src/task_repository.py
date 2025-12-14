@@ -30,16 +30,20 @@ class TaskRepository:
     def close(self):
         self.conn.close()
 
+    def create_task_by_row(self, row):
+        return Task(
+            id=row['id'],
+            description=row['description'],
+            #Convertimos el 0/1 a True/False
+            completed=(row['completed'] == 1),
+            due_date = self._from_db_format(row['due_date'])
+        )
+
     def create_tasks_by_rows(self, rows):
         tasks = []
         for row in rows:
             #Recordemos que usamos Row
-            task = Task(
-                id=row['id'],
-                description=row['description'],
-                #Convertimos el 0/1 a True/False
-                completed=(row['completed'] == 1)
-            )
+            task = self.create_task_by_row(row)
             tasks.append(task)
         return tasks
 
@@ -83,16 +87,10 @@ class TaskRepository:
         #Fetcheamos el resultado obtenido
         fetched_task = self.cursor.fetchone()
         #Construimos el objeto tarea a partir de esto
-        task = Task(
-            id=fetched_task['id'],
-            description=fetched_task['description'],
-            completed = (fetched_task['completed'] == 1),
-            due_date = self._from_db_format(fetched_task['due_date'])
-        )
+        task = self.create_task_by_row(fetched_task)
         return task
     def get_pending_tasks(self):
-        
-        sql = f"SELECT id, description, completed FROM {self.TABLE_NAME} WHERE completed = 0"
+        sql = f"SELECT id, description, completed, due_date FROM {self.TABLE_NAME} WHERE completed = 0"
         #Ejecutamos
         self.cursor.execute(sql)
         #Conseguimos todos los resultados
