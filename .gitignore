@@ -1,0 +1,50 @@
+# ------------------------------------
+# 1. Entorno Virtual (uv / venv)
+# ------------------------------------
+# uv usa .venv por defecto (un reemplazo para el venv estándar)
+.venv/
+# Evitar entornos virtuales más antiguos por si acaso
+venv/
+env/
+
+# ------------------------------------
+# 2. Archivos de Python generados
+# ------------------------------------
+# Directorios de compilación y caché de Python
+__pycache__/
+*.pyc
+# Ficheros de bytecode generado
+*.$py.class
+
+# Archivos de distribución y compilación (si usaras pip/setuptools)
+dist/
+build/
+*.egg-info/
+
+# Logs y bases de datos temporales (¡Importante para esta fase!)
+# Ignorar cualquier archivo .log
+*.log
+
+# ------------------------------------
+# 3. Archivos de Bases de Datos
+# ------------------------------------
+# Como vas a usar SQLite, el archivo de la BD NO debe subirse al Git.
+# El archivo tasks.db se regenerará en cada instalación/ejecución.
+tasks.db
+*.sqlite
+*.sqlite3
+
+# ------------------------------------
+# 4. Archivos de IDE y Configuración
+# ------------------------------------
+# VS Code
+.vscode/
+# Excluimos la carpeta .vscode completa,
+# salvo el archivo 'settings.json' si lo quieres compartir
+# (Si usas settings.json para configuraciones personales, ¡IGNÓRALO!)
+
+# Si quieres IGNORAR settings.json:
+# .vscode/settings.json
+
+# Si tienes un archivo settings.json en la raíz que no está en .vscode:
+settings.json
