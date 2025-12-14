@@ -6,7 +6,7 @@
 # Evitar entornos virtuales más antiguos por si acaso
 venv/
 env/
-
+*.db
 # ------------------------------------
 # 2. Archivos de Python generados
 # ------------------------------------
