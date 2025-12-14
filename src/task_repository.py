@@ -30,6 +30,19 @@ class TaskRepository:
     def close(self):
         self.conn.close()
 
+    def create_tasks_by_rows(self, rows):
+        tasks = []
+        for row in rows:
+            #Recordemos que usamos Row
+            task = Task(
+                id=row['id'],
+                description=row['description'],
+                #Convertimos el 0/1 a True/False
+                completed=(row['completed'] == 1)
+            )
+            tasks.append(task)
+        return tasks
+
     def _to_db_format(self, due_date_python):
         if due_date_python is None:
             return None
@@ -78,22 +91,13 @@ class TaskRepository:
         )
         return task
     def get_pending_tasks(self):
-        pending_tasks = []
+        
         sql = f"SELECT id, description, completed FROM {self.TABLE_NAME} WHERE completed = 0"
         #Ejecutamos
         self.cursor.execute(sql)
         #Conseguimos todos los resultados
         rows = self.cursor.fetchall()
-        for row in rows:
-            #Recordemos que usamos Row
-            task = Task(
-                id=row['id'],
-                description=row['description'],
-                #Convertimos el 0/1 a True/False
-                completed=(row['completed'] == 1)
-            )
-            pending_tasks.append(task)
-
+        pending_tasks = self.create_tasks_by_rows(rows)
         return pending_tasks
     def complete_task(self, task_id):
         sql = f"UPDATE {self.TABLE_NAME} SET completed = 1 WHERE id = ?"
@@ -117,16 +121,7 @@ class TaskRepository:
         self.cursor.execute(sql, (now_str,))
         #Obtenemos el resultado
         rows = self.cursor.fetchall()
-        overdue_tasks = []
-        for row in rows:
-            #Recordemos que usamos Row
-            task = Task(
-                id=row['id'],
-                description=row['description'],
-                #Convertimos el 0/1 a True/False
-                completed=(row['completed'] == 1)
-            )
-            overdue_tasks.append(task)
+        overdue_tasks = self.create_tasks_by_rows(rows)
         return overdue_tasks
 
     def contains_task(self, task_id):
