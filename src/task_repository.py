@@ -2,7 +2,8 @@
 import sqlite3
 from datetime import datetime
 from .task_manager import Task
-class TaskRepository:
+from src.repository_interface import AbstractRepository
+class TaskRepository(AbstractRepository):
     TABLE_NAME = 'tasks'
     def __init__(self, db_name, clock):
         #Conexión
