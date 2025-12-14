@@ -18,10 +18,15 @@ class Task:
     def is_completed(self):
         return self.completed
     
+    def get_description(self):
+        return self.description
+
+    def get_id(self):
+        return self.id
+    
 class TaskManager:
+    TABLE_NAME = 'tasks'
     def __init__(self, db_name):
-        #self.tasks = {}
-        #self.next_id = 0
         #Creamos las base de datos
         self.conn = sqlite3.connect(db_name)
     
@@ -34,8 +39,8 @@ class TaskManager:
 
     def _create_table(self):   
         "Creamos la tabla si no existe"
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS tareas (
+        self.cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {self.TABLE_NAME} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 description TEXT NOT NULL,
                 completed BOOLEAN NOT NULL DEFAULT 0
@@ -48,7 +53,7 @@ class TaskManager:
 
     def add_task(self, description):
 
-        sql = "INSERT INTO tareas (description, completed) VALUES (?, ?)"
+        sql = f"INSERT INTO {self.TABLE_NAME} (description, completed) VALUES (?, ?)"
         try:
             self.cursor.execute(sql, (description, 0))
         except sqlite3.Error as e:
@@ -62,9 +67,31 @@ class TaskManager:
 
         return generated_id
     
+    def delete_task(self, task_id):
+        self.assert_is_valid_task_id(task_id)
+        sql = f"DELETE FROM {self.TABLE_NAME} WHERE id = ?"
+        self.cursor.execute(sql, (task_id,))
+        #Guardamos los cambios
+        self.conn.commit()
+
+    def get_task_by_id(self, task_id):
+        self.assert_is_valid_task_id(task_id)
+        sql = f"SELECT id, description, completed FROM {self.TABLE_NAME} WHERE id = ?"
+        #Ejecutamos
+        self.cursor.execute(sql, (task_id,))
+        #Fetcheamos el resultado obtenido
+        fetched_task = self.cursor.fetchone()
+        #Construimos el objeto tarea a partir de esto
+        task = Task(
+            id=fetched_task['id'],
+            description=fetched_task['description'],
+            completed = (fetched_task['completed'] == 1)
+        )
+        return task
+
     def get_pending_tasks(self):
         pending_tasks = []
-        sql = "SELECT id, description, completed FROM tareas WHERE completed = 0"
+        sql = f"SELECT id, description, completed FROM {self.TABLE_NAME} WHERE completed = 0"
         #Ejecutamos
         self.cursor.execute(sql)
         #Conseguimos todos los resultados
@@ -83,14 +110,14 @@ class TaskManager:
     def complete_task(self, task_id):
         self.assert_is_valid_task_id(task_id)
 
-        sql = "UPDATE tareas SET completed = 1 WHERE id = ?"
+        sql = f"UPDATE {self.TABLE_NAME} SET completed = 1 WHERE id = ?"
         self.cursor.execute(sql, (task_id,))
         #Guardamos los cambios
         self.conn.commit()
 
 
     def contains_task(self, task_id):
-        sql = "SELECT COUNT(id) FROM tareas WHERE id = ?"
+        sql = f"SELECT COUNT(id) FROM {self.TABLE_NAME} WHERE id = ?"
         #Ejecutamos la consulta
         self.cursor.execute(sql, (task_id,))
         #Recuperamos lo obtenido
@@ -100,15 +127,15 @@ class TaskManager:
     
     def is_completed(self, task_id):
         self.assert_is_valid_task_id(task_id)
-        sql = "SELECT completed FROM tareas WHERE id = ?"
+        sql = f"SELECT completed FROM {self.TABLE_NAME} WHERE id = ?"
         self.cursor.execute(sql, (task_id,))
         #Obtenemos el resultado (recordemos que el False se guarda como un 0)
         completed_int  = self.cursor.fetchone()[0]
         return completed_int == 1
     
     def tasks_count(self):
-        #Contamos las tareas totales
-        sql = "SELECT COUNT(*) FROM tareas"
+        #Contamos las f{self.TABLE_NAME} totales
+        sql = f"SELECT COUNT(*) FROM {self.TABLE_NAME}"
         #Ejecutamos
         self.cursor.execute(sql)
         

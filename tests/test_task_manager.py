@@ -1,23 +1,32 @@
 import unittest
-from src.task_manager import TaskManager, TaskNotFoundError
+import os
+from src.task_manager import TaskManager, TaskNotFoundError, Task
 
 class TestTaskManager(unittest.TestCase):
+    DB_TEST_NAME = 'test_tasks.db'
     def setUp(self):
         #Creamos el task manager
-        self.manager = TaskManager(db_name='test_tasks.db')
+        self.manager = TaskManager(db_name=self.DB_TEST_NAME)
         #Tareas genéricas
         self.generic_task_description_one = 'Leer capítulo 5 del libro Design Patterns'
         self.generic_task_description_two = 'Hacer ejercicio 5 minutos'
         self.generic_task_description_three = 'Correr 1 hora'
         #Limpiamos
-        self.manager.cursor.execute("DELETE FROM tareas")
+        self.manager.cursor.execute("DELETE FROM tasks")
         self.manager.conn.commit()
     
     def tearDown(self):
         self.manager.close()
 
+    # 🚨 NUEVO MÉTODO: Ejecutado UNA VEZ al final de TODA la clase
+    @classmethod
+    def tearDownClass(cls):
+        """Borra el archivo de base de datos después de todos los tests."""
+        # Se asegura de que el archivo exista antes de intentar borrarlo
+        if os.path.exists(cls.DB_TEST_NAME):
+            os.remove(cls.DB_TEST_NAME)
+
     def test_can_add_task(self):
-        
         #Agregamos la tarea
         created_task_id = self.manager.add_task(self.generic_task_description_one)
         #Asserts
@@ -25,7 +34,6 @@ class TestTaskManager(unittest.TestCase):
         self.assertTrue(self.manager.contains_task(created_task_id), "Debe estar exactamente esta tarea")
 
     def test_can_list_only_pending_tasks(self):
-        
         #Agregamos 3 tareas
         task_id_one = self.manager.add_task(self.generic_task_description_one)
         task_id_two = self.manager.add_task(self.generic_task_description_two)
@@ -42,14 +50,12 @@ class TestTaskManager(unittest.TestCase):
         
 
     def test_added_task_is_not_completed(self):
-        
         #Agregamos la tarea
         created_task_id = self.manager.add_task(self.generic_task_description_one)
         #Asserts
         self.assertFalse(self.manager.is_completed(created_task_id))
 
     def test_can_mark_task_as_completed(self):
-        
         #Agregamos la tarea
         created_task_id = self.manager.add_task(self.generic_task_description_one)
         self.manager.complete_task(created_task_id)
@@ -57,18 +63,46 @@ class TestTaskManager(unittest.TestCase):
         self.assertTrue(self.manager.is_completed(created_task_id))
 
     def test_mark_invalid_task_id_as_completed_raises_error(self):
-        
         non_existent_id = 10
         #Asserts
         with self.assertRaises(TaskNotFoundError):
             self.manager.complete_task(non_existent_id)
 
     def test_check_is_completed_invalid_task_id_raises_error(self):
-        
         non_existent_id = 10
         #Asserts
         with self.assertRaises(TaskNotFoundError):
             self.manager.is_completed(non_existent_id)
+
+    def test_can_delete_added_task(self):
+        #Agregamos una tarea
+        created_task_id_one = self.manager.add_task(self.generic_task_description_one)
+        created_task_id_two = self.manager.add_task(self.generic_task_description_two)
+        #La borramos (por ejemplo, me equivoqué en la descripción)
+        self.manager.delete_task(created_task_id_one)
+        #Asertamos que no esté la tarea
+        self.assertEqual(self.manager.tasks_count(), 1, "Sólo debería haber una tarea")
+        self.assertFalse(self.manager.contains_task(created_task_id_one), "En particular, esta tarea no debería estar")
+
+    def test_can_not_delete_invalid_task(self):
+        non_existent_id = 59151951        
+        #Intentamos borrarla
+        with self.assertRaises(TaskNotFoundError):
+            self.manager.delete_task(non_existent_id)
+
+    def test_can_get_task_by_id(self):
+        #Agregamos la tarea
+        created_task_id = self.manager.add_task(self.generic_task_description_one)
+        #La conseguimos mediante id
+        task = self.manager.get_task_by_id(created_task_id)
+        #Asertamos que sea una instancia de Task
+        self.assertIsInstance(task, Task, "El objeto task debería tener clase Task")
+        #Asertamos que tenga los valores adecuados
+        self.assertFalse(task.is_completed(), "La tarea no debería estar completada")
+        self.assertEqual(task.get_description(), self.generic_task_description_one, "La tarea debería tener la primera descripción genérica")
+        self.assertEqual(task.get_id(), created_task_id, "El id obtenido debería ser el que nos devolvió el add_task")
+        
+
 
 if __name__ == '__main__':
     unittest.main()
