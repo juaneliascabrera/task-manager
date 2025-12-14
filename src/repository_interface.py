@@ -30,6 +30,12 @@ class AbstractRepository(ABC):
     def complete_task(self, task_id: int):
         pass
     @abstractmethod
+    def update_task_due_date(self, task_id: int, new_due_date: datetime):
+        pass
+    @abstractmethod
+    def update_task_description(self, task_id: int, new_description: str):
+        pass
+    @abstractmethod
     def delete_task(self, task_id: int):
         pass
     @abstractmethod

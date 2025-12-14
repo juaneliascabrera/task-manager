@@ -139,6 +139,7 @@ class TestTaskManager(unittest.TestCase):
         self.assertFalse(overdue_tasks[0].is_completed())
         self.assertFalse(overdue_tasks[1].is_completed())
         self.assertFalse(created_task_id_three in actual_ids)
+        
     def test_can_update_task_due_date(self):
         #Creamos el due_date
         due_date = self.mock_clock.now() + timedelta(days=3)
@@ -189,7 +190,7 @@ class TestTaskManager(unittest.TestCase):
         task = self.manager.get_task_by_id(created_task_id)
         self.assertTrue(task.get_due_date() is None, "Debería haberse borrado la fecha")
         
-    def test_can_not_update_task_description_by_invalid_id(self):
+    def test_can_not_remove_due_date_by_invalid_id(self):
         #Invalid id
         non_existent_id = 10591
         #Creamos la tarea
@@ -197,6 +198,23 @@ class TestTaskManager(unittest.TestCase):
         #Intentamos modificar una tarea que no existe
         with self.assertRaises(TaskNotFoundError):
             self.manager.remove_task_due_date(non_existent_id)
+    
+    def test_completed_overdue_task_does_not_appear_in_overdue_tasks(self):
+        #Creamos una tarea que venza en hoy+3dias
+        due_date_onetwo = self.mock_clock.now() + timedelta(days=3)
+        due_date_three = self.mock_clock.now() + timedelta(days=10)
+        created_task_id_one = self.manager.add_task(self.generic_task_description_one, due_date_onetwo)
+        created_task_id_two = self.manager.add_task(self.generic_task_description_two, due_date_onetwo)
+        created_task_id_three = self.manager.add_task(self.generic_task_description_three, due_date_three)
+        #Avanzamos 4 días 
+        self.mock_clock.advance_time(days=4)
+        #Completamos las tareas vencidas
+        self.manager.complete_task(created_task_id_one)
+        self.manager.complete_task(created_task_id_two)
+        #No deberíamos obtener nada
+        overdue_tasks = self.manager.get_overdue_tasks()
+        #Asertamos
+        self.assertFalse(overdue_tasks, "La lista debería estar vacía")
 if __name__ == '__main__':
     unittest.main()
 
