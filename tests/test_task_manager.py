@@ -1,22 +1,24 @@
 import unittest
 import os
 from src.task_manager import TaskManager, TaskNotFoundError, Task
-
+from src.task_repository import TaskRepository
 class TestTaskManager(unittest.TestCase):
     DB_TEST_NAME = 'test_tasks.db'
     def setUp(self):
+        #Creamos el repository
+        self.repository = TaskRepository(self.DB_TEST_NAME)
         #Creamos el task manager
-        self.manager = TaskManager(db_name=self.DB_TEST_NAME)
+        self.manager = TaskManager(self.repository)
         #Tareas genéricas
         self.generic_task_description_one = 'Leer capítulo 5 del libro Design Patterns'
         self.generic_task_description_two = 'Hacer ejercicio 5 minutos'
         self.generic_task_description_three = 'Correr 1 hora'
         #Limpiamos
-        self.manager.cursor.execute("DELETE FROM tasks")
-        self.manager.conn.commit()
+        self.repository.cursor.execute("DELETE FROM tasks")
+        self.repository.conn.commit()
     
     def tearDown(self):
-        self.manager.close()
+        self.repository.close()
 
     # 🚨 NUEVO MÉTODO: Ejecutado UNA VEZ al final de TODA la clase
     @classmethod
@@ -53,14 +55,14 @@ class TestTaskManager(unittest.TestCase):
         #Agregamos la tarea
         created_task_id = self.manager.add_task(self.generic_task_description_one)
         #Asserts
-        self.assertFalse(self.manager.is_completed(created_task_id))
+        self.assertFalse(self.manager.task_is_completed(created_task_id))
 
     def test_can_mark_task_as_completed(self):
         #Agregamos la tarea
         created_task_id = self.manager.add_task(self.generic_task_description_one)
         self.manager.complete_task(created_task_id)
         #Asserts
-        self.assertTrue(self.manager.is_completed(created_task_id))
+        self.assertTrue(self.manager.task_is_completed(created_task_id))
 
     def test_mark_invalid_task_id_as_completed_raises_error(self):
         non_existent_id = 10
@@ -72,7 +74,7 @@ class TestTaskManager(unittest.TestCase):
         non_existent_id = 10
         #Asserts
         with self.assertRaises(TaskNotFoundError):
-            self.manager.is_completed(non_existent_id)
+            self.manager.task_is_completed(non_existent_id)
 
     def test_can_delete_added_task(self):
         #Agregamos una tarea
@@ -101,8 +103,12 @@ class TestTaskManager(unittest.TestCase):
         self.assertFalse(task.is_completed(), "La tarea no debería estar completada")
         self.assertEqual(task.get_description(), self.generic_task_description_one, "La tarea debería tener la primera descripción genérica")
         self.assertEqual(task.get_id(), created_task_id, "El id obtenido debería ser el que nos devolvió el add_task")
-        
 
+    def test_can_not_get_task_by_invalid_id(self):
+        non_existent_id = 19519
+        #Intentamos conseguirla
+        with self.assertRaises(TaskNotFoundError):
+            self.manager.get_task_by_id(non_existent_id)
 
 if __name__ == '__main__':
     unittest.main()
