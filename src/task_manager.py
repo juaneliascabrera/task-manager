@@ -10,7 +10,7 @@ class TaskNotFoundError(TaskErrorManager):
         super().__init__(f"Error. Tarea con ID '{task_id}' no encontrada.")
     
 class Task:
-    def __init__(self, id, description):
+    def __init__(self, id, description, completed=False):
         self.id = id
         self.description = description
         self.completed = False
@@ -37,8 +37,8 @@ class TaskManager:
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS tareas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                descripcion TEXT NOT NULL,
-                completada BOOLEAN NOT NULL DEFAULT 0
+                description TEXT NOT NULL,
+                completed BOOLEAN NOT NULL DEFAULT 0
             )
         """)
         self.conn.commit()
@@ -48,7 +48,7 @@ class TaskManager:
 
     def add_task(self, description):
 
-        sql = "INSERT INTO tareas (descripcion, completada) VALUES (?, ?)"
+        sql = "INSERT INTO tareas (description, completed) VALUES (?, ?)"
         try:
             self.cursor.execute(sql, (description, 0))
         except sqlite3.Error as e:
@@ -64,23 +64,47 @@ class TaskManager:
     
     def get_pending_tasks(self):
         pending_tasks = []
-        for task in self.tasks.values():
-            if not task.is_completed():
-                pending_tasks.append(task)
-        return pending_tasks
+        sql = "SELECT id, description, completed FROM tareas WHERE completed = 0"
+        #Ejecutamos
+        self.cursor.execute(sql)
+        #Conseguimos todos los resultados
+        rows = self.cursor.fetchall()
+        for row in rows:
+            #Recordemos que usamos Row
+            task = Task(
+                id=row['id'],
+                description=row['description'],
+                #Convertimos el 0/1 a True/False
+                completed=(row['completed'] == 1)
+            )
+            pending_tasks.append(task)
 
+        return pending_tasks
     def complete_task(self, task_id):
         self.assert_is_valid_task_id(task_id)
-        task = self.tasks.get(task_id)
-        task.completed = True
+
+        sql = "UPDATE tareas SET completed = 1 WHERE id = ?"
+        self.cursor.execute(sql, (task_id,))
+        #Guardamos los cambios
+        self.conn.commit()
+
 
     def contains_task(self, task_id):
-        return task_id in self.tasks
+        sql = "SELECT COUNT(id) FROM tareas WHERE id = ?"
+        #Ejecutamos la consulta
+        self.cursor.execute(sql, (task_id,))
+        #Recuperamos lo obtenido
+        count = self.cursor.fetchone()[0]
+        return count > 0
+        
     
     def is_completed(self, task_id):
         self.assert_is_valid_task_id(task_id)
-        task = self.tasks.get(task_id)
-        return task.is_completed()
+        sql = "SELECT completed FROM tareas WHERE id = ?"
+        self.cursor.execute(sql, (task_id,))
+        #Obtenemos el resultado (recordemos que el False se guarda como un 0)
+        completed_int  = self.cursor.fetchone()[0]
+        return completed_int == 1
     
     def tasks_count(self):
         #Contamos las tareas totales
@@ -93,5 +117,5 @@ class TaskManager:
     
     #Assert methods
     def assert_is_valid_task_id(self, task_id):
-        if(task_id not in self.tasks):
+        if not self.contains_task(task_id):
             raise TaskNotFoundError(task_id)
