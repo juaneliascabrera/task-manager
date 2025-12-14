@@ -5,9 +5,12 @@ from .task_manager import Task
 from src.repository_interface import AbstractRepository
 class TaskRepository(AbstractRepository):
     TABLE_NAME = 'tasks'
-    def __init__(self, db_name, clock):
+    def __init__(self, db_name, clock, memory = False):
         #Conexión
-        self.conn = sqlite3.connect(db_name)
+        if memory:
+            self.conn = sqlite3.connect(':memory:')
+        else:
+            self.conn = sqlite3.connect(db_name)
         #Cursor
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
@@ -143,3 +146,20 @@ class TaskRepository(AbstractRepository):
         self.cursor.execute(sql)
         count = self.cursor.fetchone()[0]
         return count
+    
+    def update_task_due_date(self, task_id, new_due_date):
+        #SQL
+        sql = f"UPDATE {self.TABLE_NAME} SET due_date = ? WHERE id = ?"
+        #Conseguimos la fecha según formato correcto
+        new_due_date_db = self._to_db_format(new_due_date)
+        self.cursor.execute(sql, (new_due_date_db, task_id))
+        #Guardamos los cambios
+        self.conn.commit()
+    
+     
+    def update_task_description(self, task_id, new_description):
+        #SQL
+        sql = f"UPDATE {self.TABLE_NAME} SET description = ? WHERE id = ?"
+        self.cursor.execute(sql, (new_description, task_id))
+        #Guardamos los cambios
+        self.conn.commit()

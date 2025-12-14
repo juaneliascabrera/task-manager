@@ -9,16 +9,13 @@ class TestTaskManager(unittest.TestCase):
     def setUp(self):
         #Creamos el repository
         self.mock_clock = MockClock(datetime(2025, 12, 14, 17, 00, 00))
-        self.repository = TaskRepository(self.DB_TEST_NAME, self.mock_clock)
+        self.repository = TaskRepository(self.DB_TEST_NAME, self.mock_clock, True)
         #Creamos el task manager
         self.manager = TaskManager(self.repository)
         #Tareas genéricas
         self.generic_task_description_one = 'Leer capítulo 5 del libro Design Patterns'
         self.generic_task_description_two = 'Hacer ejercicio 5 minutos'
         self.generic_task_description_three = 'Correr 1 hora'
-        #Limpiamos
-        self.repository.cursor.execute("DELETE FROM tasks")
-        self.repository.conn.commit()
     
     def tearDown(self):
         self.repository.close()
@@ -121,7 +118,7 @@ class TestTaskManager(unittest.TestCase):
         #Recuperamos la tarea
         task = self.manager.get_task_by_id(created_task_id)
         #Asertamos
-        self.assertEqual(task.due_date, due_date, "Deberían tener la misma fecha")
+        self.assertEqual(task.get_due_date(), due_date, "Deberían tener la misma fecha")
     
     def test_can_list_overdue_tasks(self):
         #Creamos una tarea que venza en hoy+3dias
@@ -141,8 +138,65 @@ class TestTaskManager(unittest.TestCase):
         self.assertEqual(expected_ids, actual_ids)
         self.assertFalse(overdue_tasks[0].is_completed())
         self.assertFalse(overdue_tasks[1].is_completed())
-
-
+        self.assertFalse(created_task_id_three in actual_ids)
+    def test_can_update_task_due_date(self):
+        #Creamos el due_date
+        due_date = self.mock_clock.now() + timedelta(days=3)
+        #Supongamos que ahora queremos cambiar a la siguiente fecha
+        new_due_date = due_date + timedelta(days = 1)
+        #Id
+        created_task_id = self.manager.add_task(self.generic_task_description_one, due_date)
+        #Modificamos la fecha
+        self.manager.update_task_due_date(created_task_id, new_due_date)
+        #Asertamos
+        task = self.manager.get_task_by_id(created_task_id)
+        self.assertEqual(task.get_due_date(), new_due_date, "Debería haberse actualizado la fecha")
+        
+    def test_can_not_update_task_due_date_by_invalid_id(self):
+        #Invalid id
+        non_existent_id = 10591
+        #Creamos una tarea
+        due_date = self.mock_clock.now() + timedelta(days = 3)
+        created_task_id = self.manager.add_task(self.generic_task_description_one, due_date)
+        #Intentamos modificar una tarea que no existe
+        with self.assertRaises(TaskNotFoundError):
+            self.manager.update_task_due_date(non_existent_id, due_date+timedelta(days=1))
+    def test_can_update_task_description(self):
+        #Id
+        created_task_id = self.manager.add_task(self.generic_task_description_one)
+        #Modificamos la fecha
+        self.manager.update_task_description(created_task_id, self.generic_task_description_two)
+        #Asertamos
+        task = self.manager.get_task_by_id(created_task_id)
+        self.assertEqual(task.get_description(), self.generic_task_description_two, "Debería haberse actualizado la descripción")
+    def test_can_not_update_task_description_by_invalid_id(self):
+        #Invalid id
+        non_existent_id = 10591
+        #Creamos la tarea
+        created_task_id = self.manager.add_task(self.generic_task_description_one)
+        #Intentamos modificar una tarea que no existe
+        with self.assertRaises(TaskNotFoundError):
+            self.manager.update_task_description(non_existent_id, self.generic_task_description_three)
+        
+    def test_can_remove_due_date(self):
+        #Creamos el due_date
+        due_date = self.mock_clock.now() + timedelta(days=3)
+        #Id
+        created_task_id = self.manager.add_task(self.generic_task_description_one, due_date)
+        #Borramos la fecha
+        self.manager.remove_task_due_date(created_task_id)
+        #Asertamos
+        task = self.manager.get_task_by_id(created_task_id)
+        self.assertTrue(task.get_due_date() is None, "Debería haberse borrado la fecha")
+        
+    def test_can_not_update_task_description_by_invalid_id(self):
+        #Invalid id
+        non_existent_id = 10591
+        #Creamos la tarea
+        created_task_id = self.manager.add_task(self.generic_task_description_one)
+        #Intentamos modificar una tarea que no existe
+        with self.assertRaises(TaskNotFoundError):
+            self.manager.remove_task_due_date(non_existent_id)
 if __name__ == '__main__':
     unittest.main()
 

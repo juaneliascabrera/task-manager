@@ -24,6 +24,8 @@ class Task:
 
     def get_id(self):
         return self.id
+    def get_due_date(self):
+        return self.due_date
     
 class TaskManager:
 
@@ -59,6 +61,17 @@ class TaskManager:
     def tasks_count(self):
         return self.repository.tasks_count()
     
+    def update_task_due_date(self, task_id, new_due_date):
+        self.assert_is_valid_task_id(task_id)
+        self.repository.update_task_due_date(task_id, new_due_date)
+
+    def update_task_description(self, task_id, new_description):
+        self.assert_is_valid_task_id(task_id)
+        self.repository.update_task_description(task_id, new_description)
+
+    def remove_task_due_date(self, task_id):
+        self.assert_is_valid_task_id(task_id)
+        self.repository.update_task_due_date(task_id, None)
     def get_overdue_tasks(self):
         return self.repository.get_overdue_tasks()
     #Assert methods
