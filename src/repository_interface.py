@@ -42,7 +42,7 @@ class AbstractRepository(ABC):
     def tasks_count_by_user_id(self) -> int:
         pass
     @abstractmethod
-    def task_is_completed(self, task_id: int) -> bool:
+    def task_is_completed_global(self, task_id: int) -> bool:
         pass
 
     

@@ -105,7 +105,7 @@ class TaskRepository(AbstractRepository):
         count = self.cursor.fetchone()[0]
         return count
     
-    def contains_user(self, user_id):
+    def contains_user_by_id(self, user_id):
         sql = f"SELECT COUNT(id) FROM {self.USERS_TABLE_NAME} WHERE id = ?"
         #Ejecutamos la consulta
         self.cursor.execute(sql, (user_id,))
@@ -113,6 +113,31 @@ class TaskRepository(AbstractRepository):
         count = self.cursor.fetchone()[0]
         return count > 0
     
+    def contains_user_by_username(self, username):
+        sql = f"SELECT COUNT(id) FROM {self.USERS_TABLE_NAME} WHERE username = ?"
+        #Ejecutamos la consulta
+        self.cursor.execute(sql, (username,))
+        #Recuperamos lo obtenido
+        count = self.cursor.fetchone()[0]
+        return count > 0
+    
+    def update_user_name_of(self, user_id, new_username):
+        #SQL
+        sql = f"UPDATE {self.USERS_TABLE_NAME} SET username = ? WHERE id = ?"
+        #Ejecutamos
+        self.cursor.execute(sql, (new_username, user_id))
+        #Guardamos los cambios
+        self.conn.commit()
+    
+    def get_user_name(self, user_id):
+        #SQL
+        sql = f"SELECT username FROM {self.USERS_TABLE_NAME} WHERE id = ?"
+        #Ejecutamos
+        self.cursor.execute(sql, (user_id,))
+        #Conseguimos el resultado
+        username = self.cursor.fetchone()[0]
+        return username
+
     #CRUD DE TAREAS
     #1. Create
     def add_task_by_user_id_global(self, description, user_id, due_date=None):
@@ -129,8 +154,8 @@ class TaskRepository(AbstractRepository):
         self.conn.commit()
         #Handleamos el id
         generated_id = self.cursor.lastrowid
-
         return generated_id
+    
     #2. Read
     def get_task_by_id_global(self, task_id):
         sql = f"SELECT id, user_id, description, completed, due_date FROM {self.TABLE_NAME} WHERE id = ?"
@@ -216,7 +241,7 @@ class TaskRepository(AbstractRepository):
         count = self.cursor.fetchone()[0]
         return count > 0
 
-    def task_is_completed(self, task_id):
+    def task_is_completed_global(self, task_id):
         sql = f"SELECT completed FROM {self.TABLE_NAME} WHERE id = ?"
         self.cursor.execute(sql, (task_id,))
         #Obtenemos el resultado (recordemos que el False se guarda como un 0)

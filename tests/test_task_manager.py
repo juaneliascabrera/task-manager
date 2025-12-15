@@ -1,6 +1,6 @@
 import unittest
 import os
-from src.task_manager import TaskManager, TaskNotFoundError, Task, AuthenticationError
+from src.task_manager import *
 from src.task_repository import TaskRepository
 from src.clock_implementations import MockClock
 from datetime import datetime, timedelta
@@ -27,7 +27,6 @@ class TestTaskManager(unittest.TestCase):
     def tearDown(self):
         self.repository.close()
 
-    # 🚨 NUEVO MÉTODO: Ejecutado UNA VEZ al final de TODA la clase
     @classmethod
     def tearDownClass(cls):
         """Borra el archivo de base de datos después de todos los tests."""
@@ -58,14 +57,14 @@ class TestTaskManager(unittest.TestCase):
         #Agregamos la tarea
         created_task_id = self.manager.add_task_by_user_id_global(self.generic_task_description_one, user_id=self.user_id_one)
         #Asserts
-        self.assertFalse(self.manager.task_is_completed(created_task_id))
+        self.assertFalse(self.manager.task_is_completed_global(created_task_id))
 
     def test_can_mark_task_as_completed(self):
         #Agregamos la tarea
         created_task_id = self.manager.add_task_by_user_id_global(self.generic_task_description_one, user_id=self.user_id_one)
         self.manager.complete_task_global(created_task_id)
         #Asserts
-        self.assertTrue(self.manager.task_is_completed(created_task_id))
+        self.assertTrue(self.manager.task_is_completed_global(created_task_id))
 
     def test_mark_invalid_task_id_as_completed_raises_error(self):
         non_existent_id = 10
@@ -77,7 +76,7 @@ class TestTaskManager(unittest.TestCase):
         non_existent_id = 10
         #Asserts
         with self.assertRaises(TaskNotFoundError):
-            self.manager.task_is_completed(non_existent_id)
+            self.manager.task_is_completed_global(non_existent_id)
 
     def test_can_delete_added_task(self):
         #Agregamos una tarea
@@ -223,8 +222,8 @@ class TestTaskManager(unittest.TestCase):
     def test_can_add_user(self):
         #Asserts
         self.assertEqual(self.manager.users_count(), 2, "Debería haber 2 usuario")
-        self.assertTrue(self.manager.contains_user(self.user_id_one), "Debería ser estos usuarios")
-        self.assertTrue(self.manager.contains_user(self.user_id_two), "Debería ser estos usuarios")
+        self.assertTrue(self.manager.contains_user_by_id(self.user_id_one), "Debería ser estos usuarios")
+        self.assertTrue(self.manager.contains_user_by_id(self.user_id_two), "Debería ser estos usuarios")
         
     def test_can_add_task_for_user_one(self):
         #Add task
@@ -234,24 +233,97 @@ class TestTaskManager(unittest.TestCase):
         self.assertEqual(self.manager.tasks_count_by_user_id(self.user_id_one), 1, "Debe haber una tarea")
         self.assertTrue(self.manager.contains_task_by_user_id(self.user_id_one, created_task_id), "Debe estar exactamente esta tarea")
 
-    """def test_can_not_mark_other_user_task_as_completed(self):
-        #Agregamos la tarea del usuario
-        created_task_id = self.manager.add_task_by_user_id(self.generic_task_description_one, user_id=self.user_id_one)
-        #Asserts (el usuario 2 no debería poder)
-        with self.assertRaises(AuthenticationError):
-            self.manager.user_wants_to_complete_task(self.user_id_two, created_task_id)
-        #No debería estar marcada como completada
-        self.assertFalse(self.manager.task_is_completed(created_task_id))
-
-    def test_can_not_delete_other_user_task(self):
-        #Agregamos la tarea del usuario
-        created_task_id = self.manager.add_task_by_user_id(self.generic_task_description_one, user_id=self.user_id_one)
-        #Asserts (el usuario 2 no debería poder)
-        with self.assertRaises(AuthenticationError):
-            self.manager.user_wants_to_delete_task(self.user_id_two, created_task_id)
-        #No debería estar marcada como eliminada.
-        self.assertTrue(self.manager.contains_task_by_user_id(self.user_id_one, created_task_id))"""
+    def test_can_update_user_name(self):
+        #Create user
+        user_id_three = self.manager.add_user("juan")
+        #Update
+        self.manager.update_user_name_of(user_id_three, "messi")
+        #Assert
+        self.assertEqual(self.manager.get_user_name(user_id_three), "messi", "Debe llamarse juan")
         
+    def test_can_not_create_user_with_used_username(self):
+        #Create user three with repeated name
+        with self.assertRaises(UsernameAlreadyExistsError):
+            self.manager.add_user(self.generic_user_one)
+    
+    def test_add_task_with_invalid_user_id_raises_error(self):
+        non_existent_id = 99999
+        #Assert
+        with self.assertRaises(UserIdNotFoundError):
+            self.manager.add_task_for_user("Fake user task", non_existent_id)
+
+    def test_user_cannot_update_description_task_of_other_user(self):
+        #We have user one and two
+        #Add task for user one
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        #El usuario 2 trata de modificar esta tarea
+        with self.assertRaises(AuthenticationError):
+            self.manager.update_task_description_for_user(task_id_user_one, 'Descripción inválida', self.user_id_two)
+        #Invariante
+        task = self.manager.get_task_by_id_global(task_id_user_one)
+        self.assertNotEqual(task.get_description(), "Descripción inválida")
+
+    def test_user_cannot_update_overdue_date_task_of_other_user(self):
+        #We have user one and two
+        #Add task for user one
+        due_date = self.mock_clock.now() + timedelta(days=1)
+        invalid_date = self.mock_clock.now() + timedelta(days = 9)
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one, due_date)
+        #El usuario 2 trata de modificar esta tarea
+        with self.assertRaises(AuthenticationError):
+            self.manager.update_task_overdue_date_for_user(task_id_user_one, invalid_date, self.user_id_two)
+        #Invariante
+        task = self.manager.get_task_by_id_global(task_id_user_one)
+        self.assertEqual(task.get_due_date(), due_date)
+    
+    def test_user_cannot_remove_overdue_date_task_of_other_user(self):
+        #We have user one and two
+        #Add task for user one
+        due_date = self.mock_clock.now() + timedelta(days=1)
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one, due_date)
+        #El usuario 2 trata de modificar esta tarea
+        with self.assertRaises(AuthenticationError):
+            self.manager.remove_task_due_date_for_user(task_id_user_one, self.user_id_two)
+        task = self.manager.get_task_by_id_global(task_id_user_one)
+        self.assertEqual(task.get_due_date(), due_date)
+    
+    def test_user_cannot_list_pending_tasks_of_invalid_user(self):
+        #Tasks
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        non_existent_id = 99999
+        #Assert
+        with self.assertRaises(UserIdNotFoundError):
+            self.manager.get_pending_tasks_for_user(non_existent_id)
+
+    
+    def test_user_cannot_get_task_by_id_of_other_user(self):
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        #Assert
+        with self.assertRaises(AuthenticationError):
+            self.manager.get_task_by_id_for_user(task_id_user_one, self.user_id_two)
+
+    def test_user_cannot_complete_task_of_other_user(self):
+        #Task
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        #Assert
+        with self.assertRaises(AuthenticationError):
+            self.manager.complete_task_for_user(task_id_user_one, self.user_id_two)
+
+    def test_user_cannot_check_completed_status_of_other_user_task(self):
+        #Tasks
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        self.manager.complete_task_global(task_id_user_one)
+        #Assert
+        with self.assertRaises(AuthenticationError):
+            self.manager.task_is_completed_for_user(task_id_user_one, self.user_id_two)
+
+    def test_user_cannot_remove_tasks_from_other_user(self):
+        #Tasks
+        task_id_user_one = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        #Assert
+        with self.assertRaises(AuthenticationError):
+            self.manager.delete_task_for_user(task_id_user_one, self.user_id_two)
+
 if __name__ == '__main__':
     unittest.main()
 
