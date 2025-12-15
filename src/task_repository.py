@@ -22,6 +22,14 @@ class TaskRepository(AbstractRepository):
         #Guardamos el reloj
         self.clock = clock
 
+    def has_tasks(self):
+        #Contamos las tasks
+        sql = f"SELECT COUNT(*) FROM {self.TABLE_NAME}"
+        #Ejecutamos
+        self.cursor.execute(sql)
+        count = self.cursor.fetchone()[0]
+        return count != 0
+    
     #Create table method
     def _create_table(self):   
         "Creamos la tabla si no existe"
@@ -121,6 +129,14 @@ class TaskRepository(AbstractRepository):
         count = self.cursor.fetchone()[0]
         return count > 0
     
+    def contains_user_by_username(self, username):
+        sql = f"SELECT COUNT(id) FROM {self.USERS_TABLE_NAME} WHERE username = ?"
+        #Ejecutamos la consulta
+        self.cursor.execute(sql, (username,))
+        #Recuperamos lo obtenido
+        count = self.cursor.fetchone()[0]
+        return count > 0
+    
     def update_user_name_of(self, user_id, new_username):
         #SQL
         sql = f"UPDATE {self.USERS_TABLE_NAME} SET username = ? WHERE id = ?"
@@ -129,11 +145,20 @@ class TaskRepository(AbstractRepository):
         #Guardamos los cambios
         self.conn.commit()
     
-    def get_user_name(self, user_id):
+    def get_user_name_by_id(self, user_id):
         #SQL
         sql = f"SELECT username FROM {self.USERS_TABLE_NAME} WHERE id = ?"
         #Ejecutamos
         self.cursor.execute(sql, (user_id,))
+        #Conseguimos el resultado
+        username = self.cursor.fetchone()[0]
+        return username
+    
+    def get_user_id_by_username(self, username):
+        #SQL
+        sql = f"SELECT id FROM {self.USERS_TABLE_NAME} WHERE username = ?"
+        #Ejecutamos
+        self.cursor.execute(sql, (username,))
         #Conseguimos el resultado
         username = self.cursor.fetchone()[0]
         return username

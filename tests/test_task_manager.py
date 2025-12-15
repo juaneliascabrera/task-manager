@@ -239,7 +239,7 @@ class TestTaskManager(unittest.TestCase):
         #Update
         self.manager.update_user_name_of(user_id_three, "messi")
         #Assert
-        self.assertEqual(self.manager.get_user_name(user_id_three), "messi", "Debe llamarse juan")
+        self.assertEqual(self.manager.get_user_name_by_id(user_id_three), "messi", "Debe llamarse juan")
         
     def test_can_not_create_user_with_used_username(self):
         #Create user three with repeated name

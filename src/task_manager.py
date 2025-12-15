@@ -21,6 +21,12 @@ class UserIdNotFoundError(TaskErrorManager):
         self.user_id = user_id
         super().__init__(f"Error. Usuario con ID '{user_id}' no encontrado.")
 
+class UsernameNotFoundError(TaskErrorManager):
+    """Error. Usuario no existe."""
+    def __init__(self, username):
+        self.username = username
+        super().__init__(f"Error. Usuario con username '{username}' no encontrado.")
+
 
 class UsernameAlreadyExistsError(TaskErrorManager):
     """Error. Invalid username."""
@@ -51,9 +57,13 @@ class TaskManager:
     #1. Constructor
     def __init__(self, repository):
         self.repository = repository
+
+    def has_tasks(self):
+        return self.repository.has_tasks()
+    
     #2. Creación y gestión de usuarios
     def add_user(self, user_str):
-        self.assert_is_valid_username(user_str)
+        self.assert_username_do_not_exists(user_str)
         return self.repository.add_user(user_str)
     
     def users_count(self):
@@ -62,11 +72,13 @@ class TaskManager:
     def contains_user_by_id(self, user_id):
         return self.repository.contains_user_by_id(user_id)
     
+    def contains_user_by_username(self, username):
+        return self.repository.contains_user_by_username(username)
+
     def update_user_name_of(self, user_id, new_username):
         return self.repository.update_user_name_of(user_id, new_username)
     
-    def get_user_name(self, user_id):
-        return self.repository.get_user_name(user_id)
+    
     #3. CRUD De Tareas
     #3.1 Create
     def add_task_by_user_id_global(self, description, user_id, due_date = None):
@@ -160,6 +172,15 @@ class TaskManager:
         self.assert_task_id_belongs_to_user(task_id, user_id)
         return self.delete_task_global(task_id)
 
+    def get_user_name_by_id(self, user_id):
+        self.assert_is_valid_user_id(user_id)
+        return self.repository.get_user_name_by_id(user_id)
+    
+    def get_user_id_by_username(self, username):
+        self.assert_username_exists(username)
+        return self.repository.get_user_id_by_username(username)
+    
+
     #Assert methods
     def assert_is_valid_task_id_global(self, task_id):
         if not self.repository.contains_task_by_user_id(task_id):
@@ -173,9 +194,10 @@ class TaskManager:
         if not self.repository.contains_task_by_user_id(task_id, user_id):
             raise AuthenticationError(user_id)
     
-    def assert_is_valid_username(self, username):
+    def assert_username_do_not_exists(self, username):
         if self.repository.contains_user_by_username(username):
             raise UsernameAlreadyExistsError(username)
         
-
-    
+    def assert_username_exists(self, username):
+        if not self.repository.contains_user_by_username(username):
+            raise UsernameNotFoundError(username)
