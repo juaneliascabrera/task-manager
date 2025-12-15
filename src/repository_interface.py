@@ -12,34 +12,34 @@ class AbstractRepository(ABC):
     def _from_db_format(self, db_value: object) -> Optional[datetime]:
         pass
     @abstractmethod
-    def add_task(self, description:str, due_date:Optional[datetime]) -> int:
+    def add_task_by_user_id_global(self, description:str, due_date:Optional[datetime]) -> int:
         pass
     @abstractmethod
-    def get_task_by_id(self, task_id: int) -> Task:
+    def get_task_by_id_global(self, task_id: int) -> Task:
         pass
     @abstractmethod
-    def get_pending_tasks(self) -> list[Task]:
+    def get_pending_tasks_by_user_id_global(self) -> list[Task]:
         pass
     @abstractmethod
-    def get_overdue_tasks(self) -> list[Task]:
+    def get_overdue_tasks_by_user_id_global(self) -> list[Task]:
         pass
     @abstractmethod
-    def contains_task(self, task_id: int) -> bool:
+    def contains_task_by_user_id(self, task_id: int) -> bool:
         pass
     @abstractmethod
-    def complete_task(self, task_id: int):
+    def complete_task_global(self, task_id: int):
         pass
     @abstractmethod
-    def update_task_due_date(self, task_id: int, new_due_date: datetime):
+    def update_task_due_date_global(self, task_id: int, new_due_date: datetime):
         pass
     @abstractmethod
-    def update_task_description(self, task_id: int, new_description: str):
+    def update_task_description_global(self, task_id: int, new_description: str):
         pass
     @abstractmethod
-    def delete_task(self, task_id: int):
+    def delete_task_global(self, task_id: int):
         pass
     @abstractmethod
-    def tasks_count(self) -> int:
+    def tasks_count_by_user_id(self) -> int:
         pass
     @abstractmethod
     def task_is_completed(self, task_id: int) -> bool:
