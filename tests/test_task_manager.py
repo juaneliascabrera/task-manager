@@ -205,7 +205,7 @@ class TestTaskManager(unittest.TestCase):
         due_date_three = self.mock_clock.now() + timedelta(days=10)
         created_task_id_one = self.manager.add_task(self.generic_task_description_one, due_date_onetwo)
         created_task_id_two = self.manager.add_task(self.generic_task_description_two, due_date_onetwo)
-        created_task_id_three = self.manager.add_task(self.generic_task_description_three, due_date_three)
+        self.manager.add_task(self.generic_task_description_three, due_date_three)
         #Avanzamos 4 días 
         self.mock_clock.advance_time(days=4)
         #Completamos las tareas vencidas
