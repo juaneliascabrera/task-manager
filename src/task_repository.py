@@ -39,7 +39,10 @@ class TaskRepository(AbstractRepository):
                 user_id INTEGER not NULL,
                 description TEXT NOT NULL,
                 completed BOOLEAN NOT NULL DEFAULT 0,
-                due_date TEXT NULL
+                due_date TEXT NULL,
+                priority BOOLEAN NOT NULL DEFAULT 0,
+                recurrency BOOLEAN NOT NULL DEFAULT 0,
+                recurrency_days INTEGER NULL
             )
         """)
         self.cursor.execute(f"""
@@ -60,7 +63,10 @@ class TaskRepository(AbstractRepository):
             description=row['description'],
             #Convertimos el 0/1 a True/False
             completed=(row['completed'] == 1),
-            due_date = self._from_db_format(row['due_date'])
+            due_date = self._from_db_format(row['due_date']),
+            priority=(row['priority'] == 1),
+            recurrency=(row['recurrency'] == 1),
+            recurrency_days=row['recurrency_days']
         )
 
     def create_tasks_by_rows(self, rows):
@@ -165,12 +171,12 @@ class TaskRepository(AbstractRepository):
 
     #CRUD DE TAREAS
     #1. Create
-    def add_task_by_user_id_global(self, description, user_id, due_date=None):
+    def add_task_by_user_id_global(self, description, user_id, due_date=None, priority=False, recurrency=False, recurrency_days = 0):
         #La fecha nos vino como un datetime, tenemos que transformarla a ISO
         due_date_iso = self._to_db_format(due_date)
-        sql = f"INSERT INTO {self.TABLE_NAME} (user_id, description, completed, due_date) VALUES (?, ?, ?, ?)"
+        sql = f"INSERT INTO {self.TABLE_NAME} (user_id, description, completed, due_date, priority, recurrency, recurrency_days) VALUES (?, ?, ?, ?, ?, ?, ?)"
         try:
-            self.cursor.execute(sql, (user_id, description, 0, due_date_iso))
+            self.cursor.execute(sql, (user_id, description, 0, due_date_iso, priority, recurrency, recurrency_days))
         except sqlite3.Error as e:
             #Handleamos
             print(f"Error al insertar la tarea {e}")
@@ -183,7 +189,7 @@ class TaskRepository(AbstractRepository):
     
     #2. Read
     def get_task_by_id_global(self, task_id):
-        sql = f"SELECT id, user_id, description, completed, due_date FROM {self.TABLE_NAME} WHERE id = ?"
+        sql = f"SELECT id, user_id, description, completed, due_date, priority, recurrency, recurrency_days FROM {self.TABLE_NAME} WHERE id = ?"
         #Ejecutamos
         self.cursor.execute(sql, (task_id,))
         #Fetcheamos el resultado obtenido
@@ -194,10 +200,10 @@ class TaskRepository(AbstractRepository):
     
     def get_pending_tasks_by_user_id_global(self, user_id=None):
         if user_id == None:
-            sql = f"SELECT id, description, completed, due_date FROM {self.TABLE_NAME} WHERE completed = 0"    
+            sql = f"SELECT id, description, completed, due_date, priority, recurrency, recurrency_days FROM {self.TABLE_NAME} WHERE completed = 0"    
             self.cursor.execute(sql)
         else:
-            sql = f"SELECT id, user_id, description, completed, due_date FROM {self.TABLE_NAME} WHERE completed = 0 AND user_id = ?"
+            sql = f"SELECT id, user_id, description, completed, due_date, priority, recurrency, recurrency_days FROM {self.TABLE_NAME} WHERE completed = 0 AND user_id = ?"
             self.cursor.execute(sql, (user_id,))
         #Conseguimos todos los resultados
         rows = self.cursor.fetchall()
@@ -211,7 +217,7 @@ class TaskRepository(AbstractRepository):
 
         #sql
         sql = f"""
-        SELECT id, user_id, description, completed, due_date FROM {self.TABLE_NAME}
+        SELECT id, user_id, description, completed, due_date, priority, recurrency, recurrency_days FROM {self.TABLE_NAME}
         WHERE completed = 0
         AND user_id = ?
         AND due_date IS NOT NULL
@@ -226,11 +232,23 @@ class TaskRepository(AbstractRepository):
 
     #3. Update
     def complete_task_global(self, task_id):
-        sql = f"UPDATE {self.TABLE_NAME} SET completed = 1 WHERE id = ?"
+        sql = f"UPDATE {self.TABLE_NAME} SET completed = NOT completed WHERE id = ?"
         self.cursor.execute(sql, (task_id,))
         #Guardamos los cambios
         self.conn.commit()
         
+    def change_task_priority_global(self, task_id):
+        sql = f"UPDATE {self.TABLE_NAME} SET priority = NOT priority WHERE id = ?"
+        self.cursor.execute(sql, (task_id,))
+        #Guardamos los cambios
+        self.conn.commit()
+
+    def change_task_recurrency_global(self, task_id):
+        sql = f"UPDATE {self.TABLE_NAME} SET recurrency = NOT recurrency WHERE id = ?"
+        self.cursor.execute(sql, (task_id,))
+        #Guardamos los cambios
+        self.conn.commit()
+
     def update_task_due_date_global(self, task_id, new_due_date):
         #SQL
         sql = f"UPDATE {self.TABLE_NAME} SET due_date = ? WHERE id = ?"

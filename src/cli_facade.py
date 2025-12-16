@@ -7,9 +7,9 @@ class TaskManagerCliFacade:
     def create_user(self, username):
         return self.manager.add_user(username)
     #Task creating
-    def create_task(self, username, description, due_date = None):
+    def create_task(self, username, description, due_date = None, priority=False, recurrency=False, recurrency_days = 0):
         user_id = self.manager.get_user_id_by_username(username)
-        return self.manager.add_task_for_user(description, user_id, due_date)
+        return self.manager.add_task_for_user(description, user_id, due_date, priority, recurrency, recurrency_days)
     #Task removing
     def delete_task(self, username, task_id):
         user_id = self.manager.get_user_id_by_username(username)
@@ -30,3 +30,11 @@ class TaskManagerCliFacade:
     def update_task_date(self, username, task_id, new_date):
         user_id = self.manager.get_user_id_by_username(username)
         return self.manager.update_task_overdue_date_for_user(task_id, new_date, user_id)
+    
+    def update_task_priority(self, username, task_id):
+        user_id = self.manager.get_user_id_by_username(username)
+        return self.manager.change_task_priority_for_user(user_id, task_id)
+
+    def update_task_recurrency(self, username, task_id):
+        user_id = self.manager.get_user_id_by_username(username)
+        return self.manager.change_task_recurrency_for_user(user_id, task_id)

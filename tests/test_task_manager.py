@@ -26,14 +26,7 @@ class TestTaskManager(unittest.TestCase):
     
     def tearDown(self):
         self.repository.close()
-
-    @classmethod
-    def tearDownClass(cls):
-        """Borra el archivo de base de datos después de todos los tests."""
-        # Se asegura de que el archivo exista antes de intentar borrarlo
-        if os.path.exists(cls.DB_TEST_NAME):
-            os.remove(cls.DB_TEST_NAME)
-    
+        
     def test_can_list_only_pending_tasks(self):
         #Agregamos 3 tareas
         task_id_one = self.manager.add_task_by_user_id_global(self.generic_task_description_one, user_id=self.user_id_one)
@@ -323,6 +316,39 @@ class TestTaskManager(unittest.TestCase):
         #Assert
         with self.assertRaises(AuthenticationError):
             self.manager.delete_task_for_user(task_id_user_one, self.user_id_two)
+
+    def test_a_new_task_is_not_priority(self):
+        #Task
+        task_id = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one)
+        #Assert
+        task = self.manager.get_task_by_id_for_user(task_id, self.user_id_one)
+        self.assertFalse(task.is_priority())
+
+    def test_a_new_task_created_as_priority_is_priority(self):
+        #Task
+        task_id = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one, priority=True)
+        #Asserty
+        task = self.manager.get_task_by_id_for_user(task_id, self.user_id_one)
+        self.assertTrue(task.is_priority())
+
+    def test_can_change_task_priority_of_my_tasks(self):
+        #Task
+        task_id = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one, priority=True)
+        #Change
+        self.manager.change_task_priority_for_user(self.user_id_one, task_id)
+        task = self.manager.get_task_by_id_for_user(task_id, self.user_id_one)
+        self.assertFalse(task.is_priority())
+
+    def test_cannot_change_task_priority_of_other_user_tasks(self):
+        #Task
+        task_id = self.manager.add_task_for_user(self.generic_task_description_one, self.user_id_one, priority=True)
+        #Change
+        with self.assertRaises(AuthenticationError):
+            self.manager.change_task_priority_for_user(self.user_id_two, task_id)
+        task = self.manager.get_task_by_id_for_user(task_id, self.user_id_one)
+        self.assertTrue(task.is_priority())
+    
+    
 
 if __name__ == '__main__':
     unittest.main()

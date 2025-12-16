@@ -35,16 +35,26 @@ class UsernameAlreadyExistsError(TaskErrorManager):
         super().__init__(f"Error. Usuario con username '{username}' ya existe.")
     
 class Task:
-    def __init__(self, id, user_id, description, completed=False, due_date = None):
+    def __init__(self, id, user_id, description, completed=False, due_date = None, priority = False, recurrency = False, recurrency_days = 0):
         self.id = id
         self.description = description
-        self.completed = False
+        self.completed = completed
+        self.priority = priority
         self.due_date = due_date
         self.user_id = user_id
+        self.recurrency = recurrency
+        self.recurrency_days = recurrency_days
     
     def is_completed(self):
         return self.completed
     
+    def is_priority(self):
+        return self.priority
+    
+    def is_recurrency(self):
+        return self.recurrency
+    
+
     def get_description(self):
         return self.description
 
@@ -81,8 +91,8 @@ class TaskManager:
     
     #3. CRUD De Tareas
     #3.1 Create
-    def add_task_by_user_id_global(self, description, user_id, due_date = None):
-        return self.repository.add_task_by_user_id_global(description, user_id, due_date)
+    def add_task_by_user_id_global(self, description, user_id, due_date = None, priority=False, recurrency=False, recurrency_days=0):
+        return self.repository.add_task_by_user_id_global(description, user_id, due_date, priority, recurrency, recurrency_days)
     #3.2 Read
     def get_task_by_id_global(self, task_id):
         self.assert_is_valid_task_id_global(task_id)
@@ -98,6 +108,14 @@ class TaskManager:
     def complete_task_global(self, task_id):
         self.assert_is_valid_task_id_global(task_id)
         self.repository.complete_task_global(task_id)
+
+    def change_task_priority_global(self, task_id):
+        self.assert_is_valid_task_id_global(task_id)
+        self.repository.change_task_priority_global(task_id)
+
+    def change_task_recurrency_global(self, task_id):
+        self.assert_is_valid_task_id_global(task_id)
+        self.repository.change_task_recurrency_global(task_id)
 
     def update_task_due_date_global(self, task_id, new_due_date):
         self.assert_is_valid_task_id_global(task_id)
@@ -126,16 +144,25 @@ class TaskManager:
     def contains_task_by_user_id(self, user_id, task_id):
         return self.repository.contains_task_by_user_id(user_id, task_id)
 
+
     #SECURE METHODS (API)
-    def add_task_for_user(self, description, user_id, due_date = None):
+    def add_task_for_user(self, description, user_id, due_date = None, priority=False, recurrency = False, recurrency_days = 0):
         "Add task. Needs to valid user_id"
         self.assert_is_valid_user_id(user_id)
-        return self.add_task_by_user_id_global(description, user_id, due_date)
+        return self.add_task_by_user_id_global(description, user_id, due_date, priority, recurrency, recurrency_days)
 
     def get_pending_tasks_for_user(self, user_id):
         "Returns pending tasks. Needs to valid user_id"
         self.assert_is_valid_user_id(user_id)
         return self.get_pending_tasks_by_user_id_global(user_id)
+
+    def change_task_priority_for_user(self, user_id, task_id):
+        self.assert_task_id_belongs_to_user(user_id, task_id)
+        self.repository.change_task_priority_global(task_id)
+
+    def change_task_recurrency_for_user(self, user_id, task_id):
+        self.assert_task_id_belongs_to_user(user_id, task_id)
+        self.repository.change_task_recurrency_global(task_id)
 
     def get_task_by_id_for_user(self, task_id, user_id):
         "Return a Task. Needs to valid task_id with user_id"
@@ -180,6 +207,8 @@ class TaskManager:
         self.assert_username_exists(username)
         return self.repository.get_user_id_by_username(username)
     
+
+
 
     #Assert methods
     def assert_is_valid_task_id_global(self, task_id):
