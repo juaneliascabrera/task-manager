@@ -1,44 +1,38 @@
-# 🚀 Task Manager (Decoupled Python Architecture)
+🚀 Task Manager (Decoupled Python Architecture)
 
-Este proyecto implementa un sistema de gestión de tareas (To-Do List) básico en Python, con un enfoque en la **arquitectura limpia**, la **testabilidad rigurosa** y la **separación de responsabilidades**. Sirve como una demostración sólida de patrones de diseño profesionales aplicados a una aplicación común.
+This project implements a basic Task Management system (To-Do List) in Python, with a strong focus on clean architecture, rigorous testability, and separation of concerns. It serves as a solid demonstration of professional design patterns applied to a common application.
 
-## ✨ Características de la Aplicación
+✨ Application Features
+Full CRUD Support: Create, read (list pending tasks, retrieve by ID), update (mark as completed), and delete tasks.
+Deadline Management: Supports due dates (due_date) and includes logic to filter and identify overdue tasks.
+Persistence: Uses SQLite as the storage backend.
+🏗️ Architectural Highlights
 
-* **CRUD Completo:** Permite crear, leer (listar pendientes, buscar por ID), actualizar (marcar como completada) y eliminar tareas.
-* **Gestión de Plazos:** Incluye el concepto de fechas de vencimiento (`due_date`) y lógica de filtrado compleja para identificar tareas **Vencidas (`Overdue`)**.
-* **Persistencia:** Utiliza **SQLite** como el *backend* de persistencia.
+The codebase is structured for scalability and maintainability:
 
-## 🏗️ Highlights Arquitectónicos
+1. Repository Pattern
 
-La estructura del código está diseñada para la escalabilidad y el mantenimiento:
+The business logic layer (TaskManager) is completely isolated from the database technology (TaskRepository). This allows you to swap SQLite for any other persistence layer (PostgreSQL, mock database, etc.) without modifying a single line of business logic.
 
-### 1. Patrón Repositorio
-La capa de negocio (`TaskManager`) está completamente aislada de la tecnología de base de datos (`TaskRepository`). Esto significa que podrías cambiar SQLite por cualquier otra tecnología (Postgres, Mock DB) sin modificar una sola línea de la lógica de negocio. 
+2. Dependency Injection (DI)
 
-### 2. Inyección de Dependencias (DI)
-El `TaskManager` recibe sus dependencias (el Repositorio y el Reloj) en su constructor. Esto facilita el **desacoplamiento** y la **sustitución** de componentes.
+TaskManager receives its dependencies (the repository and the clock) through its constructor. This promotes loose coupling and makes components easily replaceable.
 
-### 3. Testabilidad Determinista (Clock Injection)
-La lógica dependiente del tiempo (como la determinación de tareas vencidas) se prueba inyectando un objeto `MockClock`. Esto garantiza que todos los tests de tiempo sean **100% predecibles** y no fallen aleatoriamente debido al paso del tiempo real.
+3. Deterministic Testability (Clock Injection)
 
-## 📁 Estructura del Proyecto
+Time-dependent logic (such as identifying overdue tasks) is tested by injecting a MockClock. This ensures that all time-based tests are fully deterministic and do not fail due to real-time progression.
 
-* `src/task_manager.py`: La Capa de Lógica de Negocio.
-* `src/task_repository.py`: La Capa de Persistencia (contiene SQL, manejo de la conexión y el mapeo de tipos).
-* `src/clock_interface.py`: Define el contrato (`AbstractClock`).
-* `src/clock_implementations.py`: Contiene el `SystemClock` y el `MockClock` para el testing.
-* `tests/`: Contiene los *unit tests* rigurosos escritos siguiendo la filosofía TDD.
+📁 Project Structure
+src/task_manager.py: Business Logic Layer
+src/task_repository.py: Persistence Layer (contains SQL, connection handling, and type mapping)
+src/clock_interface.py: Defines the contract (AbstractClock)
+src/clock_implementations.py: Contains SystemClock and MockClock for testing
+tests/: Contains rigorous unit tests written following TDD principles
+🛠️ Getting Started
+Clone the Repository
+git clone [your-repo-link]
+cd [your-repo-name]
+Run Tests (Recommended)
+python -m unittest
 
-## 🛠️ Cómo Empezar
-
-1.  **Clonar el Repositorio:**
-    ```bash
-    git clone [tu-link-al-repo]
-    cd [nombre-de-tu-repo]
-    ```
-2.  **Ejecutar Tests (Recomendado):**
-    ```bash
-    python -m unittest
-    ```
-
-**(Nota: El comando `python -m unittest` se asume que ejecutará todos los tests dentro de tu carpeta `tests/`).**
+Note: This command assumes that all tests inside the tests/ folder will be automatically discovered and executed.
